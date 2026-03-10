@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -415,7 +416,10 @@ function updateBanner() {
   const cdEl    = document.getElementById('statusCountdown');
   const depTime = document.getElementById('statusDepTime');
 
-  if (!deps.length) {
+  // Skip any trains that have already departed (secs <= 0)
+  const activeDeps = deps.filter(d => d.secsFromNow > 0);
+
+  if (!activeDeps.length) {
     panel.className     = 'status-panel leave-soon';
     icon.textContent    = '🌙';
     msg.className       = 'status-msg leave-soon';
@@ -425,7 +429,7 @@ function updateBanner() {
     return;
   }
 
-  const secs     = deps[0].secsFromNow;
+  const secs     = activeDeps[0].secsFromNow;
   const mins     = secs / 60;
   const countdown = fmtCountdown(secs);
 
@@ -436,7 +440,7 @@ function updateBanner() {
     msg.textContent     = 'Too late to make this train';
     cdEl.className      = 'status-countdown too-late';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${deps[0].time}`;
+    depTime.textContent = `Departing at ${activeDeps[0].time}`;
   } else if (mins < 2) {
     panel.className     = 'status-panel run';
     icon.textContent    = '🏃';
@@ -444,7 +448,7 @@ function updateBanner() {
     msg.textContent     = 'You can make it if you RUN';
     cdEl.className      = 'status-countdown run';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${deps[0].time}`;
+    depTime.textContent = `Departing at ${activeDeps[0].time}`;
   } else if (mins < 5) {
     panel.className     = 'status-panel leave-now';
     icon.textContent    = '⚡';
@@ -452,7 +456,7 @@ function updateBanner() {
     msg.textContent     = 'Leave now to make this train';
     cdEl.className      = 'status-countdown leave-now';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${deps[0].time}`;
+    depTime.textContent = `Departing at ${activeDeps[0].time}`;
   } else {
     panel.className     = 'status-panel leave-soon';
     icon.textContent    = '✅';
@@ -460,7 +464,7 @@ function updateBanner() {
     msg.textContent     = 'Leave soon to make this train';
     cdEl.className      = 'status-countdown leave-soon';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${deps[0].time}`;
+    depTime.textContent = `Departing at ${activeDeps[0].time}`;
   }
 }
 
@@ -476,7 +480,7 @@ function render() {
 
   el.innerHTML = deps.map((dep, i) => {
     const secs = dep.secsFromNow;
-    const mins = Math.ceil(secs / 60);
+    const mins = Math.round(secs / 60);
     let cls = 'normal', rowCls = '', cText, uText;
 
     if (secs < 90) {
