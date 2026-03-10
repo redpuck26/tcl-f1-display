@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Going Down The Hill – F1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --tcl-red:    #e3051b;
+      --tcl-green:  #6aaa35;
+      --tcl-dark:   #0d0d0d;
+      --tcl-panel:  #141414;
+      --tcl-border: #2a2a2a;
+      --tcl-muted:  #4a4a4a;
+      --tcl-text:   #f0f0f0;
+      --tcl-accent: #ffd700;
+      --soon-color: #ff6b35;
+      --go-color:   #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--tcl-dark);
+      color: var(--tcl-text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 56px;
+      border-bottom: 1px solid var(--tcl-border);
+      background: var(--tcl-panel);
+      flex-shrink: 0;
+    }
+    .brand { display: flex; align-items: center; gap: 20px; }
+    .logo-img {
+      height: 64px;
+      width: auto;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .brand-info h1 {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 2rem; font-weight: 700; line-height: 1;
+      letter-spacing: -0.5px;
+    }
+    .route-subtitle {
+      font-size: 0.8rem; color: #777; font-weight: 300;
+      margin-top: 6px; letter-spacing: 1.5px; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .route-subtitle .arr { color: var(--tcl-red); font-size: 1rem; }
+    .header-right { text-align: right; }
+    .clock {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 3rem; font-weight: 500;
+      color: var(--tcl-accent); line-height: 1;
+    }
+    .date-display { font-size: 0.75rem; color: #666; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+    .day-badge {
+      display: inline-block; margin-top: 5px;
+      font-size: 0.62rem; padding: 3px 10px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
+    }
+    .day-badge.weekday { background: rgba(227,5,27,0.15); color: var(--tcl-red); border: 1px solid rgba(227,5,27,0.3); }
+    .day-badge.weekend { background: rgba(255,215,0,0.12); color: var(--tcl-accent); border: 1px solid rgba(255,215,0,0.25); }
+
+    /* ── ROUTE STRIP ── */
+    .route-strip {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; padding: 14px 56px;
+      background: var(--tcl-dark);
+      border-bottom: 1px solid var(--tcl-border);
+      flex-shrink: 0;
+    }
+    .rs-stop { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .rs-dot {
+      width: 13px; height: 13px; border-radius: 50%;
+      border: 2.5px solid var(--tcl-muted); background: var(--tcl-dark);
+    }
+    .rs-dot.active  { border-color: var(--tcl-accent); background: var(--tcl-accent); box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+    .rs-dot.terminus{ border-color: var(--tcl-red);    background: var(--tcl-red);    box-shadow: 0 0 8px rgba(227,5,27,0.4); }
+    .rs-name { font-size: 0.6rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .rs-name.active  { color: var(--tcl-accent); }
+    .rs-name.terminus{ color: var(--tcl-red); }
+    .rs-line {
+      flex: 1; max-width: 140px; height: 2px;
+      background: var(--tcl-border); margin-bottom: 18px; position: relative;
+    }
+    .rs-line::after {
+      content: ''; position: absolute; top: -3px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--tcl-accent);
+      animation: trainSlide 5s linear infinite;
+    }
+    @keyframes trainSlide {
+      0%  { left: 0%;   opacity: 0; }
+      15% { left: 0%;   opacity: 1; }
+      100%{ left: 100%; opacity: 1; }
+    }
+
+    /* ── MAIN CONTENT — side by side ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px 56px 20px;
+      overflow: hidden;
+    }
+
+    /* ── LEFT PANEL: departure list ── */
+    .panel {
+      background: var(--tcl-panel);
+      border: 1px solid var(--tcl-border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 24px 28px;
+    }
+    .panel-header {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.75rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 2px; color: #555;
+      margin-bottom: 18px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-header .arr { color: var(--tcl-red); }
+
+    .departures-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+    .dep-card {
+      background: var(--tcl-dark);
+      border: 1px solid var(--tcl-border);
+      border-radius: 8px; padding: 18px 22px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: relative; overflow: hidden; transition: border-color 0.3s;
+      flex: 1;
+    }
+    .dep-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 5px; background: var(--tcl-muted); border-radius: 8px 0 0 8px;
+    }
+    .dep-card.imminent { border-color: rgba(34,197,94,0.3); }
+    .dep-card.imminent::before { background: var(--go-color); }
+    .dep-card.soon::before     { background: var(--soon-color); }
+    .dep-card.next::before     { background: var(--tcl-accent); }
+    .dep-card.imminent::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at left center, rgba(34,197,94,0.05), transparent 70%);
+      pointer-events: none;
+    }
+    .dep-left { display: flex; flex-direction: column; gap: 4px; }
+    .dep-time {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 2.2rem; font-weight: 500; line-height: 1; letter-spacing: -1px;
+    }
+    .dep-label {
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: #444;
+    }
+    .dep-right { text-align: right; }
+    .dep-countdown {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.8rem; font-weight: 500; line-height: 1;
+    }
+    .dep-countdown.imminent { color: var(--go-color); }
+    .dep-countdown.soon     { color: var(--soon-color); }
+    .dep-countdown.normal   { color: #666; }
+    .dep-unit { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #444; margin-top: 4px; }
+    .empty-state {
+      color: #333; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem;
+      text-align: center; padding: 40px 0;
+    }
+
+    /* ── RIGHT PANEL: status indicator ── */
+    .status-panel {
+      background: var(--tcl-panel);
+      border: 1px solid var(--tcl-border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      text-align: center;
+      gap: 16px;
+      transition: background 0.4s, border-color 0.4s;
+    }
+    .status-panel.too-late  { background: rgba(227,5,27,0.08);   border-color: rgba(227,5,27,0.35); }
+    .status-panel.run       { background: rgba(255,107,53,0.08); border-color: rgba(255,107,53,0.4); animation: urgentPulse 1s ease-in-out infinite; }
+    .status-panel.leave-now { background: rgba(255,215,0,0.07);  border-color: rgba(255,215,0,0.3); }
+    .status-panel.leave-soon{ background: rgba(34,197,94,0.06);  border-color: rgba(34,197,94,0.25); }
+
+    @keyframes urgentPulse {
+      0%,100% { box-shadow: none; }
+      50%      { box-shadow: 0 0 28px 4px rgba(255,107,53,0.18); }
+    }
+
+    .status-icon  { font-size: 3rem; line-height: 1; }
+    .status-msg {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 1.25rem; font-weight: 700; line-height: 1.2;
+    }
+    .status-msg.too-late   { color: var(--tcl-red); }
+    .status-msg.run        { color: var(--soon-color); }
+    .status-msg.leave-now  { color: var(--tcl-accent); }
+    .status-msg.leave-soon { color: var(--go-color); }
+
+    .status-countdown-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-countdown {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 3.5rem; font-weight: 600; line-height: 1;
+      letter-spacing: -1px;
+    }
+    .status-countdown.too-late   { color: var(--tcl-red); }
+    .status-countdown.run        { color: var(--soon-color); }
+    .status-countdown.leave-now  { color: var(--tcl-accent); }
+    .status-countdown.leave-soon { color: var(--go-color); }
+    .status-dep-time {
+      font-size: 0.72rem; color: #555; letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 56px; border-top: 1px solid var(--tcl-border);
+      background: var(--tcl-panel); flex-shrink: 0;
+    }
+    .status-indicator { display: flex; align-items: center; gap: 8px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #555; }
+    .status-text { font-size: 0.7rem; color: #555; letter-spacing: 0.5px; }
+    .data-src    { font-size: 0.66rem; color: #333; }
+    .countdown-tick {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <img class="logo-img" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACQAV8DASIAAhEBAxEB/8QAHQABAAICAwEBAAAAAAAAAAAAAAcIAwYBAgQFCf/EAE0QAAECAgQHCA8ECgIDAAAAAAABAwIEBQYHERITFDFUkZIIITdTcXJ0shYXMzU2UVVhdYGUs7TC0kFWwdEVGCIjMkKClbHiRFI0k6L/xAAcAQEAAgIDAQAAAAAAAAAAAAAABQYEBwIDCAH/xABAEQABAwIBBgkJBwQDAAAAAAAAAQIDBBEFEjEzUXGxFSEyNEFSYYGRBgcUFzVzobLREyJUcsHS4RZCQ5IjU/D/2gAMAwEAAhEDEQA/ALlmOZfZlZZ2ZmHYGmWoFjcjjW6GGFEvVVXxIhkIT3XFcVoSpLVWpN3BnKaiWF3BXfhl4bsPaXBh86YR1zSJExXqSOE4dJiVZHSx53L4J0r3JxlebXq9Ttd68TlLo+83IwxYmQZwlRG2YV3lu8cW/EvnW7MiGoZTM6Q9tqYgVxzlct1znpilpIaWFsMTbNalk7jLlMzpD22oymZ0h7bUxA+Hfkt1GXKZnSHttRlMzpD22piAGS3UZcpmdIe21GUzOkPbamIAZLdRlymZ0h7bUZTM6Q9tqYgBkt1GXKZnSHttRlMzpD22piAGS3UZcpmdIe21GUzOkPbamIAZLdRlymZ0h7bUZTM6Q9tqYgBkt1GXKZnSHttRlMzpD22piAGS3UZcpmdIe21GUzOkPbamIAZLdRlymZ0h7bUkTc2PPR23VchjdciTDf3oolX/AI7pGxIu5p4b6uc9/wCHdOcWkbtTeRWOtTgup4v8b/lUvCeOm+8s90dzqqew8dOd5Z7oznVUsUnIU8xuzFe0ccuT95HrOcY5xkWs6JmQ5NdXUhTtjHOMi1jGOcZFrOoPt1B2xjnGRaxjHOMi1nUC6g7YxzjItYxjnGRazqBdQdsY5xkWsYxzjItZ1AuoO2Mc4yLWMY5xkWs6gXUHbGOcZFrGMc4yLWdQLqDtjHOMi1jGOcZFrOoF1B2xjnGRaxjHOMi1nUC6gsiUVt9rQtbLUaVnm48OUlY8ilPFi21VL08yxLHF/UW/terEtVbNqcppuPAfallgl18T0f7EC+qKJF9RQRN5C5YjJmZ3m8fNphqK6Wucmb7qb1/TxUAAjDbgAAAAAAALaWbWJ2d01Z/QFL0jREw5OTlHsvvxpOuwpFHFAiqtyRXJn+w7YYXTLZpB45j9NgsbZKhFVHLZLIi71QqWC6naAsv8iTPt731DtAWX+RJn2976jI4Pm7PH+CtesnCeo/wb+4pWC6naAsv8iTPt731DtAWX+RJn2976hwfN2eP8D1k4T1H+Df3FKwXU7QFl/kSZ9ve+odoCy/yJM+3vfUOD5uzx/gesnCeo/wAG/uKVg2O06ipKg7QqdoejWlak5OdcaZgWJYlhhRd5L1319ZrhhqllsXuCZs8TZW5nIi+PGAAfDuAAABIu5p4b6uc9/wCHdI6JF3NPDfVznv8Aw7pzi0jdqbyJx32XU+7f8ql4Tx053lnujOdVT2HjpzvLPdGc6qlik5CnmJ2ZSvKZkOThMyHJrohQAAAAAAD00bITtJTSS0hLOTDq/wAsCZk8armRPOpItWbN2WkhmKddR6PPk7USpAnOizr6rk5TLpaKapX/AI04tfQdkcTn5iPqLomk6UWP9HyL8ykH8SwQ7yevNee7sSrL5GmdSfmTlKy7EqxCxLMtstQJdDBBCkMKciIZCeZgEeT95637DLSjbbjUr3SlE0lRatpSMm7LK5fgYd37V11/+UPESNbb3SieR35COSAradtPO6Nq8SfQxJWIx6tQAAxTrAAAAAAPpbtGm1l6r0JV9uJUinZqOZcu/wCjUKIiLyxOIv8ASVYJk3X1KLO2qwSEMarBR8g00sN+8kcSxRquqKHUQ2WirflTOU9SeRlIlLg0KdLkyl71unwsAAY5aQAAAAAAX7sd4KKqeiJb3cJQQv3Y7wUVU9ES3u4SQw7SLsNZ+c3mcP5l3G1gFZd1/TtN0TXChWqKpmkZBtyj1ijhlpqNpIlxi76pCqXqSU832LMq1zWGB4Q7F6xtK12Sqoq3XjzJcs0D89uzKuH3sp7+4vfUOzKuH3sp7+4vfUYXCSdX4l59WNR+ITwX6n6Eg/Pbsyrh97Ke/uL31Dsyrh97Ke/uL31DhJOr8R6saj8Qngv1Pp22cLdafSTv+TTzLNzMxNzLk1NvuzD7sSxOOuxrHHGq51VV31UxEW5bqqm2qSFYKdkSrfJRE8EsAAfDIAAABIu5p4b6uc9/4d0jokXc08N9XOe/8O6c4tI3am8icd9l1Pu3/KpeE8dOd5Z7oznVU9h46c7yz3RnOqpYpOQp5idmUrymZDk4TMhya6IUAAAySzD0y/CxLsuPOxrdDBBCsUSr5kQ32rNnEw9gzFOOqw3nydpUWNedFmT1X8qGl0HSL1EUtLUixfhMxoqw3/xQ5oofWl6E/SMyzOybM3Lx4bL0CRwL40VLycwekgqFVZONU6OgyqaNj73MdGUdI0ZLJLSEq3LtJ9kCZ18arnVfOp6j51O05RlCS+OpCahbv/gbTfjj5Ic68uYjGs9oFJUlhMUakVHyq718K/vY086/y8iaydqa6Cjbkrn1J/7iMt8rI0sS9BHBHhYEUMWCt0Vy33L4jk1CyNVWqCKq3qsw4qr60NvMmnl+2ibJa10udjHZTUUjS23ulE8jvyEckjW290onkd+Qjkp+L88f3bkIyp0igAEadIAAAAABD1uk8lI2v1nmUW/Bn42P/UiN/IaWfWrpMZXXKm5rCwsdSMw5f48JyJfxPklhct3Kus9g4fEkNJFGn9rWp4IgAB8MwAAAAAAF+7HeCiqnoiW93CUEL92O8FFVPREt7uEkMO0i7DWfnN5nB+ZdxtZVTdqeGlBejoveKWrKqbtTw0oL0dF7xTLr9CvcUzyB9tx7HblIEABCG/wAAAAAAAAAAAASLuaeG+rnPf8Ah3SOiRdzTw31c57/AMO6c4tI3am8icd9l1Pu3/KpeE8dOd5Z7oznVU9h46c7yz3RnOqpYpOQp5idmUrymZDk4TMhya6IUAAAGyUPXOlqJoBaKlMWipGqtvRJhRNwrnhRM2e9b1vz5jWwdsU0kK5TFspya5W8aGSbmH5uYjmJp5x56Nb4o44r1X1mMA61VVW6nEmKyLwQh6Q5+Bt5qFkXghD0hz8Dby+UHNo9iEtDo0I0tt7pRPI78hHJI1tvdKJ5HfkI5Kpi/PH925CPqdIoABGnSAAAAAAVtmHFemHHYlvWONYl9a3nQyTTatTTrSpcsEcUKpyLcYywHsttrJYAAHIAAAAAAF+7HeCiqnoiW93CUEL92O71lFVPREt7uEkMO0i7DWfnN5nB+ZdxtZolpNlVWK/0nK0hTrlIQuyzKstpLvQwQ4OEq798K796m9glnsa9LOS6GoqSsno5UlgcrXJ0pnIa/Vus846m/a4foH6t1nnHU37XD9BMoOn0WHqoSv8AVGMfiXeJDX6t1nnHU37XD9B8ut259qHRdVKXpOVepnHyki8+1hzUKw4UECxJemBmvQnk+DaNwfVj9FTPuoji+lhRq/dMil8psXdOxq1DrKqdPafnuAgIE9GAAAAAAAkXc08N9XOe/wDDukdEi7mnhvq5z3/h3TnFpG7U3kTjvsup92/5VLwnjpzvLPdGc6qnsPHTneWe6M51VLFJyFPMTsyleUzIcnCZkOTXRCgAAAAAAAAExWReCEPSHPwNvNQsi8EIekOfgbeX2g5tHsQlodGhGltvdKJ5HfkI5JGtt7pRPI78hHJVMX54/u3IR9TpFAAI06QAAAAACAK6S+SVypyVuwcTSMw3d4rnYk/A+SbpbpIpR1r9Z5dIcHCn4n7r7+6ojl//ANmllhcmSqpqPYOHypNSRSJ/c1q+KIAAfDMAAAAAABfyx/gpqp6HlfdQlAy/lj/BTVT0PK+6hJDDtIuw1l5zeZwfmXcbUVw3WNb60VcrZQ8vQNOz9HMvSKxuQS7qwpFFjFS9U8dxY8qpu1PDSgvR0XvFMyuVUhW3YUnyGhjmxhjJGo5LO4lS6ZiNO2jaL986Z9pUdtG0X750z7Spp4IXLdrXxN6cFUP/AEs/1T6G4dtG0X750z7Spim7Sa/Tco9KTVbqXeYfbibdbimFVI4YkuVF8yopqgGW7WviEwuiRbpC3/VPoAAcTPAAAAAABIu5p4b6uc9/4d0jokXc08N9XOe/8O6c4tI3am8icd9l1Pu3/KpeE8dOd5Z7oznVU9h46c7yz3RnOqpYpOQp5idmUrymZDk4TMhya6IUAAAAAAAAAmKyLwQh6Q5+Bt5qFkXghD0hz8Dby+0HNo9iEtDo0I0tt7pRPI78hHJI1tvdKJ5HfkI5Kpi/PH925CPqdIoABGnSAAAAAAafuv6MWStVbnoYFSCkKPacWL7FjhWKBU9SQw60IaLUbtGhFmarULT7cF8UjNRS7ip/0dhvRV5Im0T+oquWirbkzOQ9SeRlWlVg0K9LUyV7lsnwsAAY5aQAAAAAAX8sf4KaqeiJX3UJQMv5Y/wU1U9ESvuoSQw7SLsNZec3mcH5l3G1FVN2p4aUF6Oi94pasqpu1PDSgvR0XvFMuv0K9xTfIH23HsduUgQAEIb/AAAAAAAAAAAAAASLuaeG+rnPf+HdI6JF3NPDfVznv/DunOLSN2pvInHfZdT7t/yqXhPHTneWe6M51VPYeOnO8s90ZzqqWKTkKeYnZlK8pmQ5OEzIcmuiFAAAABvFWagJTNBy1J/pVWMekS4vJ8LBuiVM+EniO+nppah2TGl1OTGOetmmjgkntWp5cX2X/cdq1PLi+y/7mXwRWdT4p9Tt9Gk1H2bIvBCHpDn4G3nyKo0J2P0QlH5TlNzkUeHgYGf7Lr1PrltpI3RwMY7OiISMTVaxEUjS23ulE8jvyEck2V2qqlZYpSJZ/JcnSNO5YeFhXedLsxrnatTy4vsv+5X8Rw6pmqXPY26LbpTUnaYc0D3PVUQjYEju2XwttRx/ptVwYVW7Jf8AcjdFvRF8ZE1FJNTW+1S19n6GM+NzOUhyADGOAAABM9rtXlrVZvTlCNwYb70rFHLp43YP24E9cUKJ6ygab6Xn6TFFbfarrVO1KlZKBvAlJuPLZTxYtxVW5PMkaRw/0lzxGPM/uN4+bTEkR0tC5c/3k3L+ngpoYAIw24AAAAAAC/NjO9ZNVX0VL9RCgxNtVN0TTdXqs0bQTNXKOfbkJVuXgcjejRY0ghRL1RPt3jKpJmRPVXaikeW+C1mLU0UdK26tddeNE6O0tyVU3anhpQXo6L3imX9aGn/utRntEZGtrloc7aLS0lSM7RsvIxyjCsQwsxrEkSLEsV+/ymRVVccseS3PsK35JeSmJ4bibKioYiNRF6UXOnYppIAI022AAAAAAAAAAAACRdzTw31c57/w7pHRIu5p4b6uc9/4d05xaRu1N5E477Lqfdv+VS8J46c7yz3RnOqp7Dx053lnujOdVSxSchTzE7MpXlMyHJwmZDk10QoAAAJvs18CKN5sfXiIQPqSNYqckZWCVlKTfZYbvwIIbrkvW/xeNSQw2sbSSq9yXuluLuO6CRI3XUn0EE9ltZfLMzrT8h2W1l8szOtPyJvh+Dqr8PqZXpjdROwIJ7Lay+WZnWn5DstrL5ZmdafkOH4Oqvw+o9MbqJ2BBPZbWXyzM60/IdltZfLMzrT8hw/B1V+H1HpjdROM3/4r3Mi/wVxg/gTkPuRVrrJFCsMVMTKoqXKl6fkfETeQicTr2VitViKlr5+2xjTzJJaxyACKOgAAAsiQput6nLTdR2qxybOFOULEsTmCm/FLxXJHsqkMXmRIiazHMsMzUs7LTDUDrLsCwOQRpfDFCqXKip4lQ2JNGkrFYpbMJxGTDayOqjztXxTpTvTiPzdBulr1RJ2o9eJyiIWHnJGJcdIPYKqjjMWZL/HDvwr50vzKhqGTTOjvbClcc1WrZc56YpauGqhbNE67XJdO8xAy5NM6O9sKMmmdHe2FPh35TdZiBlyaZ0d7YUZNM6O9sKBlN1mIGXJpnR3thRk0zo72woGU3WYgZcmmdHe2FGTTOjvbCgZTdZiBlyaZ0d7YUZNM6O9sKBlN1mIGXJpnR3thRk0zo72woGU3WYgZcmmdHe2FGTTOjvbCgZTdZiBlyaZ0d7YUZNM6O9sKBlN1mIGXJpnR3thRk0zo72woGU3WYiRdzTw31c57/wAO6R/k0zo72wpIm5sZegtuq5FG05CmG/vxQqn/AB3TnFpG7U3kVjrk4LqeP/G/5VLunjpzvLPdGc6qnsPHTfeWe6O51VLFJyFPMbsxXlMyHJyjblyfu49Rzi3OLi1GurKQp1B2xbnFxahi3OLi1H2yg6g7Ytzi4tQxbnFxahZQdQdsW5xcWoYtzi4tQsoOoO2Lc4uLUMW5xcWoWUHUHbFucXFqGLc4uLULKDqDti3OLi1DFucXFqFlB1B2xbnFxahi3OLi1Cyg6g7Ytzi4tQxbnFxahZQf/9k=" alt="F1 Logo" />
+    <div class="brand-info">
+      <h1>Going Down The Hill</h1>
+      <div class="route-subtitle">
+        <span>Minimes – Théatres Romains</span>
+        <span class="arr">→</span>
+        <span>Vieux Lyon – Cat. St-Jean</span>
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="date-display" id="dateDisplay">–</div>
+    <div class="day-badge" id="dayBadge">–</div>
+  </div>
+</header>
+
+<div class="route-strip">
+  <div class="rs-stop">
+    <div class="rs-dot active"></div>
+    <div class="rs-name active">Minimes</div>
+  </div>
+  <div class="rs-line"></div>
+  <div class="rs-stop">
+    <div class="rs-dot terminus"></div>
+    <div class="rs-name terminus">Vieux Lyon</div>
+  </div>
+</div>
+
+<!-- MAIN: two side-by-side panels -->
+<main>
+  <!-- LEFT: next departures -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="arr">↓</span> Next Departures · Vieux Lyon
+    </div>
+    <div class="departures-grid" id="departuresGrid">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: can I make it? -->
+  <div class="status-panel" id="statusPanel">
+    <div class="status-icon" id="statusIcon"></div>
+    <div class="status-msg" id="statusMsg"></div>
+    <div class="status-countdown-wrap">
+      <div class="status-countdown" id="statusCountdown"></div>
+      <div class="status-dep-time" id="statusDepTime"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="status-indicator">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">–</span>
+  </div>
+  <div class="data-src">Official TCL timetable · Updated 10 March 2026</div>
+</footer>
+
+<script>
+// ── TIMETABLES ──────────────────────────────────────────────────
+const WEEKDAY = [
+  "00:02",
+  "05:25","05:38","05:50",
+  "06:02","06:14","06:26","06:38","06:50",
+  "07:02","07:09","07:16","07:23","07:30","07:37","07:43","07:49","07:55",
+  "08:01","08:07","08:13","08:19","08:25","08:31","08:37","08:43","08:49","08:55",
+  "09:01","09:07","09:13","09:19","09:25","09:31","09:43","09:55",
+  "10:07","10:19","10:31","10:43","10:55",
+  "11:07","11:19","11:31","11:43","11:51","11:59",
+  "12:07","12:15","12:23","12:31","12:39","12:47","12:55",
+  "13:03","13:11","13:19","13:27","13:35","13:43","13:51","13:59",
+  "14:11","14:23","14:35","14:47","14:59",
+  "15:11","15:23","15:35","15:42","15:49","15:56",
+  "16:03","16:10","16:17","16:24","16:31","16:38","16:45","16:52","16:59",
+  "17:06","17:13","17:20","17:27","17:34","17:41","17:48","17:55",
+  "18:02","18:09","18:16","18:23","18:30","18:37","18:44","18:51","18:58",
+  "19:05","19:12","19:19","19:26","19:33","19:40","19:47","19:54",
+  "20:02","20:14","20:26","20:38","20:50",
+  "21:02","21:14","21:26","21:38","21:50",
+  "22:02","22:14","22:26","22:38","22:50",
+  "23:02","23:14","23:26","23:38","23:50"
+];
+
+const WEEKEND = [
+  "00:02","00:14","00:26","00:40","00:54",
+  "01:08",
+  "05:25","05:37","05:49",
+  "06:01","06:13","06:25","06:37","06:49",
+  "07:01","07:13","07:25","07:37","07:49",
+  "08:01","08:13","08:25","08:37","08:49",
+  "09:01","09:13","09:25","09:37","09:49",
+  "10:01","10:13","10:25","10:37","10:49",
+  "11:01","11:13","11:25","11:37","11:49",
+  "12:01","12:13","12:25","12:37","12:49",
+  "13:01","13:13","13:25","13:49",
+  "14:01","14:08","14:15","14:22","14:29","14:36","14:43","14:50","14:57",
+  "15:04","15:11","15:18","15:25","15:32","15:39","15:46","15:53",
+  "16:00","16:07","16:14","16:21","16:28","16:35","16:42","16:49","16:56",
+  "17:03","17:10","17:17","17:24","17:31","17:38","17:45","17:52","17:59",
+  "18:06","18:13","18:20","18:27","18:34","18:41","18:48","18:55",
+  "19:02","19:09","19:16","19:23","19:30","19:37","19:44","19:51",
+  "20:02","20:14","20:26","20:38","20:50",
+  "21:02","21:14","21:26","21:38","21:50",
+  "22:02","22:14","22:26","22:38","22:50",
+  "23:02","23:14","23:26","23:38","23:50"
+];
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function toSecs(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 3600 + m * 60;
+}
+function nowSecs() {
+  const n = new Date();
+  return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds();
+}
+function isWeekend() {
+  const d = new Date().getDay();
+  return d === 0 || d === 6;
+}
+function getUpcoming(count = 3) {
+  const schedule = isWeekend() ? WEEKEND : WEEKDAY;
+  const now = nowSecs();
+  const deps = [];
+  for (const t of schedule) {
+    let diff = toSecs(t) - now;
+    if (diff < -90) diff += 86400; // midnight wrap
+    if (diff >= -90 && diff <= 7200) {
+      deps.push({ time: t, secsFromNow: diff });
+    }
+    if (deps.length >= count) break;
+  }
+  return deps;
+}
+
+// ── FORMAT COUNTDOWN MM:SS ───────────────────────────────────────
+function fmtCountdown(secs) {
+  const s = Math.max(0, Math.floor(secs));
+  const m = Math.floor(s / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return `${m}:${ss}`;
+}
+
+// ── STATUS PANEL (called every second) ──────────────────────────
+function updateBanner() {
+  const deps    = getUpcoming(3);
+  const panel   = document.getElementById('statusPanel');
+  const icon    = document.getElementById('statusIcon');
+  const msg     = document.getElementById('statusMsg');
+  const cdEl    = document.getElementById('statusCountdown');
+  const depTime = document.getElementById('statusDepTime');
+
+  if (!deps.length) {
+    panel.className     = 'status-panel leave-soon';
+    icon.textContent    = '🌙';
+    msg.className       = 'status-msg leave-soon';
+    msg.textContent     = 'No departures soon';
+    cdEl.textContent    = '';
+    depTime.textContent = 'Service has ended for now';
+    return;
+  }
+
+  const secs     = deps[0].secsFromNow;
+  const mins     = secs / 60;
+  const countdown = fmtCountdown(secs);
+
+  if (secs < 90) {
+    panel.className     = 'status-panel too-late';
+    icon.textContent    = '🚫';
+    msg.className       = 'status-msg too-late';
+    msg.textContent     = 'Too late to make this train';
+    cdEl.className      = 'status-countdown too-late';
+    cdEl.textContent    = countdown;
+    depTime.textContent = `Departing at ${deps[0].time}`;
+  } else if (mins < 2) {
+    panel.className     = 'status-panel run';
+    icon.textContent    = '🏃';
+    msg.className       = 'status-msg run';
+    msg.textContent     = 'You can make it if you RUN';
+    cdEl.className      = 'status-countdown run';
+    cdEl.textContent    = countdown;
+    depTime.textContent = `Departing at ${deps[0].time}`;
+  } else if (mins < 5) {
+    panel.className     = 'status-panel leave-now';
+    icon.textContent    = '⚡';
+    msg.className       = 'status-msg leave-now';
+    msg.textContent     = 'Leave now to make this train';
+    cdEl.className      = 'status-countdown leave-now';
+    cdEl.textContent    = countdown;
+    depTime.textContent = `Departing at ${deps[0].time}`;
+  } else {
+    panel.className     = 'status-panel leave-soon';
+    icon.textContent    = '✅';
+    msg.className       = 'status-msg leave-soon';
+    msg.textContent     = 'Leave soon to make this train';
+    cdEl.className      = 'status-countdown leave-soon';
+    cdEl.textContent    = countdown;
+    depTime.textContent = `Departing at ${deps[0].time}`;
+  }
+}
+
+// ── RENDER DEPARTURE CARDS (every 30s is fine) ───────────────────
+function render() {
+  const deps = getUpcoming(3);
+  const el   = document.getElementById('departuresGrid');
+
+  if (!deps.length) {
+    el.innerHTML = '<div class="empty-state">No departures in the next 2 hours</div>';
+    return;
+  }
+
+  el.innerHTML = deps.map((dep, i) => {
+    const secs = dep.secsFromNow;
+    const mins = Math.ceil(secs / 60);
+    let cls = 'normal', rowCls = '', cText, uText;
+
+    if (secs < 90) {
+      cls = 'imminent'; rowCls = 'imminent'; cText = '🚟'; uText = 'departing';
+    } else if (secs < 120) {
+      cls = 'imminent'; rowCls = 'imminent'; cText = '1'; uText = 'min';
+    } else if (mins <= 5) {
+      cls = 'soon'; rowCls = 'soon'; cText = mins; uText = 'min';
+    } else {
+      if (i === 0) rowCls = 'next';
+      cText = mins; uText = 'min';
+    }
+
+    const label = i === 0 ? 'next' : i === 1 ? 'then' : 'later';
+
+    return `<div class="dep-card ${rowCls}">
+      <div class="dep-left">
+        <div class="dep-time">${dep.time}</div>
+        <div class="dep-label">${label}</div>
+      </div>
+      <div class="dep-right">
+        <div class="dep-countdown ${cls}">${cText}</div>
+        <div class="dep-unit">${uText}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('statusText').textContent = isWeekend()
+    ? 'Weekend timetable active'
+    : 'Weekday timetable active';
+}
+
+// ── CLOCK + BANNER TICK (every second) ──────────────────────────
+function startClock() {
+  const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function tick() {
+    const n = new Date();
+    document.getElementById('clock').textContent =
+      `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+    document.getElementById('dateDisplay').textContent =
+      `${DAYS[n.getDay()]}, ${MONTHS[n.getMonth()]} ${n.getDate()} ${n.getFullYear()}`;
+    const badge = document.getElementById('dayBadge');
+    const we = n.getDay() === 0 || n.getDay() === 6;
+    badge.textContent = we ? 'Weekend schedule' : 'Weekday schedule';
+    badge.className   = `day-badge ${we ? 'weekend' : 'weekday'}`;
+    // update banner countdown every second
+    updateBanner();
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+startClock();
+render();
+setInterval(render, 30000); // cards refresh every 30s
+</script>
+</body>
+</html>
