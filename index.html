@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -390,8 +389,8 @@ function getUpcoming(count = 3) {
   const deps = [];
   for (const t of schedule) {
     let diff = toSecs(t) - now;
-    if (diff < -90) diff += 86400; // midnight wrap
-    if (diff >= -90 && diff <= 7200) {
+    if (diff < 0) diff += 86400; // midnight wrap
+    if (diff > 0 && diff <= 7200) {
       deps.push({ time: t, secsFromNow: diff });
     }
     if (deps.length >= count) break;
