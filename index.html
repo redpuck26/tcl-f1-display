@@ -393,9 +393,9 @@ function getUpcoming(count = 3) {
     if (diff > 0 && diff <= 7200) {
       deps.push({ time: t, secsFromNow: diff });
     }
-    if (deps.length >= count) break;
   }
-  return deps;
+  deps.sort((a, b) => a.secsFromNow - b.secsFromNow);
+  return deps.slice(0, count);
 }
 
 // ── FORMAT COUNTDOWN MM:SS ───────────────────────────────────────
