@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <meta name="apple-mobile-web-app-title" content="F1 Departures" />
   <title>Going Down The Hill – F1</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -349,7 +346,7 @@ const WEEKDAY = [
   "23:02","23:14","23:26","23:38","23:50"
 ];
 
-const WEEKEND = [
+const SATURDAY = [
   "00:02","00:14","00:26","00:40","00:54",
   "01:08",
   "05:25","05:37","05:49",
@@ -373,6 +370,30 @@ const WEEKEND = [
   "23:02","23:14","23:26","23:38","23:50"
 ];
 
+const SUNDAY = [
+  "00:02","00:14","00:26","00:38","00:52",
+  "01:08",
+  "05:25","05:38","05:50",
+  "06:02","06:14","06:26","06:38","06:50",
+  "07:02","07:14","07:26","07:38","07:50",
+  "08:02","08:14","08:26","08:38","08:50",
+  "09:02","09:14","09:26","09:38","09:50",
+  "10:02","10:14","10:26","10:38","10:50",
+  "11:02","11:14","11:26","11:38","11:50",
+  "12:02","12:14","12:26","12:38","12:50",
+  "13:02","13:14","13:26","13:50",
+  "14:02","14:14","14:26","14:38","14:50",
+  "15:02","15:14","15:26","15:38","15:50",
+  "16:02","16:14","16:26","16:38","16:50",
+  "17:02","17:14","17:26","17:38","17:50",
+  "18:02","18:14","18:26","18:38","18:50",
+  "19:02","19:14","19:26","19:38","19:50",
+  "20:02","20:14","20:26","20:38","20:50",
+  "21:02","21:14","21:26","21:38","21:50",
+  "22:02","22:14","22:26","22:38","22:50",
+  "23:02","23:14","23:26","23:38","23:50"
+];
+
 // ── HELPERS ─────────────────────────────────────────────────────
 function toSecs(t) {
   const [h, m] = t.split(':').map(Number);
@@ -382,23 +403,43 @@ function nowSecs() {
   const n = new Date();
   return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds();
 }
+function getSchedule() {
+  const d = new Date().getDay();
+  if (d === 6) return SATURDAY;
+  if (d === 0) return SUNDAY;
+  return WEEKDAY;
+}
 function isWeekend() {
   const d = new Date().getDay();
   return d === 0 || d === 6;
 }
 function getUpcoming(count = 3) {
-  const schedule = isWeekend() ? WEEKEND : WEEKDAY;
+  const schedule = getSchedule();
   const now = nowSecs();
   const deps = [];
   for (const t of schedule) {
     let diff = toSecs(t) - now;
-    if (diff < 0) diff += 86400; // midnight wrap
-    if (diff > 0 && diff <= 7200) {
+    if (diff < 0) diff += 86400;
+    if (diff >= 0 && diff <= 7200) {
       deps.push({ time: t, secsFromNow: diff });
     }
+    if (deps.length >= count) break;
   }
-  deps.sort((a, b) => a.secsFromNow - b.secsFromNow);
-  return deps.slice(0, count);
+  return deps;
+}
+
+// For the status panel — looks back 90s to catch trains still "at the stop"
+function getStatusDep() {
+  const schedule = getSchedule();
+  const now = nowSecs();
+  for (const t of schedule) {
+    let diff = toSecs(t) - now;
+    if (diff < -90) diff += 86400;
+    if (diff >= -90 && diff <= 7200) {
+      return { time: t, secsFromNow: diff };
+    }
+  }
+  return null;
 }
 
 // ── FORMAT COUNTDOWN MM:SS ───────────────────────────────────────
@@ -411,6 +452,7 @@ function fmtCountdown(secs) {
 
 // ── STATUS PANEL (called every second) ──────────────────────────
 function updateBanner() {
+  const dep     = getStatusDep();
   const deps    = getUpcoming(3);
   const panel   = document.getElementById('statusPanel');
   const icon    = document.getElementById('statusIcon');
@@ -418,10 +460,7 @@ function updateBanner() {
   const cdEl    = document.getElementById('statusCountdown');
   const depTime = document.getElementById('statusDepTime');
 
-  // Skip any trains that have already departed (secs <= 0)
-  const activeDeps = deps.filter(d => d.secsFromNow > 0);
-
-  if (!activeDeps.length) {
+  if (!dep) {
     panel.className     = 'status-panel leave-soon';
     icon.textContent    = '🌙';
     msg.className       = 'status-msg leave-soon';
@@ -431,8 +470,8 @@ function updateBanner() {
     return;
   }
 
-  const secs     = activeDeps[0].secsFromNow;
-  const mins     = secs / 60;
+  const secs      = dep.secsFromNow;
+  const mins      = secs / 60;
   const countdown = fmtCountdown(secs);
 
   if (secs < 90) {
@@ -442,7 +481,7 @@ function updateBanner() {
     msg.textContent     = 'Too late to make this train';
     cdEl.className      = 'status-countdown too-late';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${activeDeps[0].time}`;
+    depTime.textContent = `Departing at ${dep.time}`;
   } else if (mins < 2) {
     panel.className     = 'status-panel run';
     icon.textContent    = '🏃';
@@ -450,7 +489,7 @@ function updateBanner() {
     msg.textContent     = 'You can make it if you RUN';
     cdEl.className      = 'status-countdown run';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${activeDeps[0].time}`;
+    depTime.textContent = `Departing at ${dep.time}`;
   } else if (mins < 5) {
     panel.className     = 'status-panel leave-now';
     icon.textContent    = '⚡';
@@ -458,7 +497,7 @@ function updateBanner() {
     msg.textContent     = 'Leave now to make this train';
     cdEl.className      = 'status-countdown leave-now';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${activeDeps[0].time}`;
+    depTime.textContent = `Departing at ${dep.time}`;
   } else {
     panel.className     = 'status-panel leave-soon';
     icon.textContent    = '✅';
@@ -466,7 +505,7 @@ function updateBanner() {
     msg.textContent     = 'Leave soon to make this train';
     cdEl.className      = 'status-countdown leave-soon';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${activeDeps[0].time}`;
+    depTime.textContent = `Departing at ${dep.time}`;
   }
 }
 
