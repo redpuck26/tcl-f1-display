@@ -416,30 +416,32 @@ function isWeekend() {
 function getUpcoming(count = 3) {
   const schedule = getSchedule();
   const now = nowSecs();
-  const deps = [];
+  const candidates = [];
   for (const t of schedule) {
     let diff = toSecs(t) - now;
     if (diff < 0) diff += 86400;
     if (diff >= 0 && diff <= 7200) {
-      deps.push({ time: t, secsFromNow: diff });
+      candidates.push({ time: t, secsFromNow: diff });
     }
-    if (deps.length >= count) break;
   }
-  return deps;
+  candidates.sort((a, b) => a.secsFromNow - b.secsFromNow);
+  return candidates.slice(0, count);
 }
 
 // For the status panel — looks back 90s to catch trains still "at the stop"
 function getStatusDep() {
   const schedule = getSchedule();
   const now = nowSecs();
+  const candidates = [];
   for (const t of schedule) {
     let diff = toSecs(t) - now;
     if (diff < -90) diff += 86400;
     if (diff >= -90 && diff <= 7200) {
-      return { time: t, secsFromNow: diff };
+      candidates.push({ time: t, secsFromNow: diff });
     }
   }
-  return null;
+  candidates.sort((a, b) => a.secsFromNow - b.secsFromNow);
+  return candidates[0] || null;
 }
 
 // ── FORMAT COUNTDOWN MM:SS ───────────────────────────────────────
