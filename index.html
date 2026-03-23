@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -477,28 +478,34 @@ function updateBanner() {
     return;
   }
 
-  const secs      = dep.secsFromNow;
+  let secs = dep.secsFromNow;
+
+  // If the status dep has already departed, use the next upcoming train instead
+  if (secs < 0) {
+    const next = getUpcoming(1)[0];
+    if (!next) {
+      panel.className     = 'status-panel leave-soon';
+      icon.textContent    = '🌙';
+      msg.className       = 'status-msg leave-soon';
+      msg.textContent     = 'No departures soon';
+      cdEl.textContent    = '';
+      depTime.textContent = 'Service has ended for now';
+      return;
+    }
+    secs = next.secsFromNow;
+    dep  = next;
+  }
+
   const mins      = secs / 60;
   const countdown = fmtCountdown(secs);
-
-  if (secs < 0) {
-    // Departed within the last 90s — count down to the next train instead
-    const next = getUpcoming(1)[0];
-    panel.className     = 'status-panel too-late';
-    icon.textContent    = '🚫';
-    msg.className       = 'status-msg too-late';
-    msg.textContent     = 'Too late to make this train';
-    cdEl.className      = 'status-countdown too-late';
-    cdEl.textContent    = next ? fmtCountdown(next.secsFromNow) : '–';
-    depTime.textContent = next ? `Next departure at ${next.time}` : '–';
-  } else if (secs < 90) {
+  if (mins < 1) {
     panel.className     = 'status-panel too-late';
     icon.textContent    = '🚫';
     msg.className       = 'status-msg too-late';
     msg.textContent     = 'Too late to make this train';
     cdEl.className      = 'status-countdown too-late';
     cdEl.textContent    = countdown;
-    depTime.textContent = `Departing at ${dep.time}`;
+    depTime.textContent = `Next departure at ${dep.time}`;
   } else if (mins < 2) {
     panel.className     = 'status-panel run';
     icon.textContent    = '🏃';
