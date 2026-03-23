@@ -441,7 +441,12 @@ function getStatusDep() {
     }
   }
   candidates.sort((a, b) => a.secsFromNow - b.secsFromNow);
-  return candidates[0] || null;
+  // If the soonest candidate has already departed (negative), only show it
+  // if it's within the 90s "too late" window. Otherwise skip to the next one.
+  for (const c of candidates) {
+    if (c.secsFromNow >= -90) return c;
+  }
+  return null;
 }
 
 // ── FORMAT COUNTDOWN MM:SS ───────────────────────────────────────
@@ -476,7 +481,17 @@ function updateBanner() {
   const mins      = secs / 60;
   const countdown = fmtCountdown(secs);
 
-  if (secs < 90) {
+  if (secs < 0) {
+    // Departed within the last 90s — count down to the next train instead
+    const next = getUpcoming(1)[0];
+    panel.className     = 'status-panel too-late';
+    icon.textContent    = '🚫';
+    msg.className       = 'status-msg too-late';
+    msg.textContent     = 'Too late to make this train';
+    cdEl.className      = 'status-countdown too-late';
+    cdEl.textContent    = next ? fmtCountdown(next.secsFromNow) : '–';
+    depTime.textContent = next ? `Next departure at ${next.time}` : '–';
+  } else if (secs < 90) {
     panel.className     = 'status-panel too-late';
     icon.textContent    = '🚫';
     msg.className       = 'status-msg too-late';
@@ -570,8 +585,9 @@ function startClock() {
     const we = n.getDay() === 0 || n.getDay() === 6;
     badge.textContent = we ? 'Weekend schedule' : 'Weekday schedule';
     badge.className   = `day-badge ${we ? 'weekend' : 'weekday'}`;
-    // update banner countdown every second
+    // update banner countdown and cards every second
     updateBanner();
+    render();
   }
   tick(); setInterval(tick, 1000);
 }
@@ -579,7 +595,7 @@ function startClock() {
 // ── INIT ─────────────────────────────────────────────────────────
 startClock();
 render();
-setInterval(render, 30000); // cards refresh every 30s
+setInterval(render, 30000); // kept as safety net
 </script>
 </body>
 </html>
