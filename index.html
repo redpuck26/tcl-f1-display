@@ -420,7 +420,7 @@ function getUpcoming(count = 3) {
   for (const t of schedule) {
     let diff = toSecs(t) - now;
     if (diff < 0) diff += 86400;
-    if (diff >= 0 && diff <= 7200) {
+    if (diff > 0 && diff <= 7200) {
       candidates.push({ time: t, secsFromNow: diff });
     }
   }
@@ -459,7 +459,7 @@ function fmtCountdown(secs) {
 
 // ── STATUS PANEL (called every second) ──────────────────────────
 function updateBanner() {
-  const dep     = getStatusDep();
+  let dep       = getStatusDep();
   const deps    = getUpcoming(3);
   const panel   = document.getElementById('statusPanel');
   const icon    = document.getElementById('statusIcon');
@@ -479,8 +479,8 @@ function updateBanner() {
 
   let secs = dep.secsFromNow;
 
-  // If the status dep has already departed, use the next upcoming train instead
-  if (secs < 0) {
+  // If the status dep has already departed or is departing now, use the next upcoming train
+  if (secs <= 0) {
     const next = getUpcoming(1)[0];
     if (!next) {
       panel.className     = 'status-panel leave-soon';
